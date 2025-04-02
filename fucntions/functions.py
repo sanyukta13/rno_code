@@ -51,3 +51,5 @@ def align_and_average_voltage_traces(time_values, voltage_traces):
     # Calculate the mean of the aligned voltage traces along axis 0
     average_voltage = np.mean(aligned_traces, axis=0)
     return average_voltage
+
+# def noise_wf(voltage_tr):
