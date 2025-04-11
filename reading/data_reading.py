@@ -24,7 +24,7 @@ from scipy.signal import correlate
 warnings.filterwarnings('ignore', category=AstropyDeprecationWarning)
 AddCableDelay = channelAddCableDelay.channelAddCableDelay()
 BandPassFilter = channelBandPassFilter.channelBandPassFilter()
-DET = detector.Detector(json_filename = "/data/user/sanyukta/rno_data/data/json/RNO_season_2023.json")
+DET = detector.Detector(json_filename = "/home/sanyukta/software/source/NuRadioMC/NuRadioReco/detector/RNO_G/RNO_season_2024.json")
 DET.update(datetime.now())
 DATA_PATH_ROOT = '/data/user/sanyukta/rno_data/cal_pulser'
 
