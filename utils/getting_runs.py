@@ -40,7 +40,7 @@ def get_runs(df, save_dir, pulser_type):
         os.system(f"rnogcopy run {st} {run} --server="chicago"")
     
 
-save_dir = '/data/user/sanyukta/rno_data/cal_pulser'
-df = get_df("quality_check__in-situ_pulsing_run_information.csv")
-get_runs(df, save_dir, 'fiber0')
-get_runs(df, save_dir, 'fiber1')
+# save_dir = '/data/user/sanyukta/rno_data/cal_pulser'
+# df = get_df("quality_check__in-situ_pulsing_run_information.csv")
+# get_runs(df, save_dir, 'fiber0')
+# get_runs(df, save_dir, 'fiber1')
