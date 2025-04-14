@@ -52,4 +52,18 @@ def align_and_average_voltage_traces(time_values, voltage_traces):
     average_voltage = np.mean(aligned_traces, axis=0)
     return average_voltage
 
-# def noise_wf(voltage_tr):
+def get_bins(bin_width, data):
+    """
+    Create bins for histogramming data
+    Parameters:
+    - bin_width (float): Width of each bin
+    - data (numpy array): Data to be binned
+    
+    Returns:
+    - bins (numpy array): Array of bin edges    
+    """
+    min_val = np.min(data)
+    max_val = np.max(data)
+    num_bins = int((max_val - min_val) / bin_width)
+    bins = np.linspace(min_val, max_val, num_bins + 1)
+    return bins
