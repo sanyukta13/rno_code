@@ -46,7 +46,7 @@ def read_root_file(station_number, run, selectors=[], sampling_rate=3.2):
     selectors : list, optional
         list of selectors or filters you want to apply on the events read, default is an empty list
     sampling_rate : float, optional
-        sampling rate in GHz at which to read volts, default is 3.2
+        sampling rate in GHz at which to read volts, default is 3.2, use 2.4 for 2024 data
 
     Returns
     -------
@@ -156,7 +156,34 @@ def basic_read_root(path_to_root, selectors = [], sampling_rate = 3.2):
     reader.begin(dirs_files = path_to_root, selectors = selectors, overwrite_sampling_rate = sampling_rate)
     return reader
 
-def get_eventsvoltstraces(reader, band_pass = 0):
+def get_fiber_for_run(station_id, run):
+    '''
+    Gets the fiber number for a station and a run
+    
+    Parameters
+    ----------
+    station_id : int
+        station id
+    run : int
+        run number
+
+    Returns
+    -------
+    fiber_number : int
+        fiber number if run is found in <DATA_PATH_ROOT>/st<station_id>/fiber<fiber_number>/st<station_id>_run<run>.root
+        else None
+    '''
+    
+    file_0 = DATA_PATH_ROOT + '/station' + str(station_id) + '/fiber0/station' + str(station_id) + '_run' + str(run) + '_combined.root'
+    file_1 = DATA_PATH_ROOT + '/station' + str(station_id) + '/fiber1/station' + str(station_id) + '_run' + str(run) + '_combined.root'
+    fiber_number = None
+    if os.path.isfile(file_0):
+        fiber_number = 0
+    elif os.path.isfile(file_1):
+        fiber_number = 1
+    return fiber_number
+
+def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_factor = 6):
     '''
     Parameters
     ----------
@@ -164,6 +191,10 @@ def get_eventsvoltstraces(reader, band_pass = 0):
         readRNOGData object that can be used to fetch volts and times lists to construct a dataset for the run
     band_pass : int, optional
         0 if band pass filter is not to be applied, 1 if band pass filter is to be applied, default is 0
+    pulse_filter : int, optional
+        0 if pulse filter is not to be applied, 1 if pulse filter is to be applied, default is 0
+    pulse_rms_factor : int, optional
+        pulse rms factor to be used for pulse filter, default is 6
     Returns times, volts, events in the following format
     volts - [
 -> event 1  {
@@ -196,12 +227,21 @@ def get_eventsvoltstraces(reader, band_pass = 0):
         for channel in station.iter_channels():
             times[index][channel.get_id()] = channel.get_times()
             volts[index][channel.get_id()] = channel.get_trace()
+        if pulse_filter:
+            reference_channel = 3
+            no_pulse_event_index = []
+            for index in range(len(volts)):
+                waveform_ref_i = volts[index][reference_channel]
+                waveform_mean_ref_i = waveform_ref_i - np.mean(waveform_ref_i) #dc offset
+                pulse_found = False
+                if np.max(np.abs(waveform_mean_ref_i)) > pulse_rms_factor*np.std(waveform_mean_ref_i):
+                    pulse_found = True
+                    break
+                if not pulse_found:
+                    no_pulse_event_index.append(index)
+            no_pulse_event_index.sort(reverse=True)
+            for index in no_pulse_event_index:
+                volts.pop(index)
+                times.pop(index)
+                event_ids.pop(index)
     return event_ids, times, volts
-
-
-def main():
-    # Example usage of read_raw_traces
-    events, times, volts = get_eventsvoltstraces(basic_read_root('/data/user/sanyukta/rno_data/cal_pulser/st11/fiber0/st11_run1726.root'), band_pass=1)
-    print(volts[0][0]) 
-if __name__ == "__main__":
-    main()
