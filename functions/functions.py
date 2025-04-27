@@ -68,3 +68,35 @@ def get_bins(bin_width, data):
     bins = np.linspace(min_val, max_val, num_bins + 1)
     return bins
 
+def rms_noise(volt_trace):
+    """
+    Calculate the root mean square (RMS) noise of a voltage trace.
+    
+    Parameters:
+    - volt_trace (numpy array): Voltage trace
+    
+    Returns:
+    - rms (float): RMS noise
+    """
+    pk_pos = np.argmax(volt_trace)
+    noise_wf = np.concatenate((volt_trace[:pk_pos-200], volt_trace[pk_pos+200:]))
+    noise = np.sqrt(np.mean(noise_wf**2))
+
+    return noise
+
+def get_snr(volt_trace):
+    """
+    Calculate the signal-to-noise ratio (SNR) of a voltage trace.
+    
+    Parameters:
+    - volt_trace (numpy array): Voltage trace
+    
+    Returns:
+    - snr (float): Signal-to-noise ratio
+    """
+    vpkpk = np.max(volt_trace) - np.min(volt_trace)
+    noise = rms_noise(volt_trace)
+    snr = vpkpk/(2*noise)
+
+    return snr
+
