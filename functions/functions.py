@@ -67,3 +67,4 @@ def get_bins(bin_width, data):
     num_bins = int((max_val - min_val) / bin_width)
     bins = np.linspace(min_val, max_val, num_bins + 1)
     return bins
+

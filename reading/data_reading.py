@@ -181,7 +181,60 @@ def get_fiber_for_run(station_id, run):
         fiber_number = 0
     elif os.path.isfile(file_1):
         fiber_number = 1
+    else:
+        print(f"File not found for station {station_id} and run {run}")
+        return None
     return fiber_number
+
+def get_cp_pos(station_id, run):
+    '''
+    Gets the position of the calibration pulser for a station and a run
+    
+    Parameters
+    ----------
+    station_id : int
+        station id
+    run : int
+        run number
+
+    Returns
+    -------
+    x_rx : float
+    y_rx : float
+    z_rx : float
+    '''
+    
+    cal_pulser = DET.get_device(station_id, get_fiber_for_run(station_id, run))
+    x_tx = cal_pulser['ant_position_x']
+    y_tx = cal_pulser['ant_position_y']
+    z_tx = cal_pulser['ant_position_z']
+    return x_tx, y_tx, z_tx
+
+def get_ref_ch(station_id, run):
+    '''
+    Gets the channel id of the receiver channel that is closest to the calibration pulser in depth for a station and a run
+    
+    Parameters
+    ----------
+    station_id : int
+        station id
+    run : int
+        run number
+
+    Returns
+    -------
+    ref_ch : int
+        channel id of the receiver channel that is closest to the calibration pulser
+    '''
+
+    _, _, z_tx = get_cp_pos(station_id=station_id, run=run)
+    channel_depths = []
+    for ch in PA_CHS:
+        _, _, z_rx = get_ch_pos(station_id=station_id, ch=ch)
+        channel_depths.append(z_rx)
+    channel_depths = np.array(channel_depths)
+    ref_ch = PA_CHS[np.abs(channel_depths - z_tx).argmin()]
+    return ref_ch
 
 def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_factor = 6):
     '''
@@ -220,7 +273,9 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         volts.append({})
         event_ids.append(event.get_id())
         station_id = event.get_station_ids()[0]
+        print(station_id)
         station = event.get_station(station_id)
+        print(station)
         AddCableDelay.run(event, station, DET, mode='subtract')
         if band_pass:
             BandPassFilter.run(event, station, DET, passband = [175*units.MHz, 750*units.MHz])
@@ -228,7 +283,7 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
             times[index][channel.get_id()] = channel.get_times()
             volts[index][channel.get_id()] = channel.get_trace()
         if pulse_filter:
-            reference_channel = 3
+            reference_channel = get_ref_ch(station_id=station_id, run=run)
             no_pulse_event_index = []
             for index in range(len(volts)):
                 waveform_ref_i = volts[index][reference_channel]
