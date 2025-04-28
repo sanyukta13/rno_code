@@ -273,9 +273,7 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         volts.append({})
         event_ids.append(event.get_id())
         station_id = event.get_station_ids()[0]
-        print(station_id)
         station = event.get_station(station_id)
-        print(station)
         AddCableDelay.run(event, station, DET, mode='subtract')
         if band_pass:
             BandPassFilter.run(event, station, DET, passband = [175*units.MHz, 750*units.MHz])
