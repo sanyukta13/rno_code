@@ -100,7 +100,7 @@ def get_snr(volt_trace):
 
     return snr
 
-def set_plot(nrows, ncols, dpi=200, figsize=None, xlabel, ylabel, grid=True):
+def set_plot(nrows, ncols, xlabel, ylabel, dpi=200, figsize=None, grid=True):
     """
     Set the plot and labels
     
