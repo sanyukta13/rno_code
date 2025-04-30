@@ -100,3 +100,31 @@ def get_snr(volt_trace):
 
     return snr
 
+def set_plot(nrows, ncols, dpi=200, figsize=None, xlabel, ylabel, grid=True):
+    """
+    Set the plot and labels
+    
+    Parameters:
+    - nrows (int): number of rows in the plot
+    - ncols (int): number of columns in the plot
+    - dpi (int): dots per inch for the plot, default is 200
+    - figsize (tuple): figure size in inches (width, height), default is None
+    - xlabel (str): Label for the x-axis
+    - ylabel (str): Label for the y-axis
+    - grid (bool): Whether to show grid lines, default is True
+    Returns:
+
+    """
+    fig, ax = plt.subplots(nrows, ncols, dpi=200, figsize=figsize)
+    if nrows == 1 and ncols == 1:
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        if grid:
+            plt.grid()
+    elif nrows>1 and ncols==1:
+        for i in range(nrows):
+            ax[i].set_xlabel(xlabel[i])
+            ax[i].set_ylabel(ylabel[i])
+            if grid:
+                ax[i].grid()
+    return fig, ax
