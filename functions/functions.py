@@ -84,12 +84,13 @@ def rms_noise(volt_trace):
 
     return noise
 
-def get_snr(volt_trace):
+def get_snr(volt_trace, ant_type='vpol'):
     """
     Calculate the signal-to-noise ratio (SNR) of a voltage trace.
     
     Parameters:
     - volt_trace (numpy array): Voltage trace
+    - ant_type (str): Antenna type, vpol or hpol, slight correction in snr for hpol, default is 'vpol'
     
     Returns:
     - snr (float): Signal-to-noise ratio
@@ -97,6 +98,8 @@ def get_snr(volt_trace):
     vpkpk = np.max(volt_trace) - np.min(volt_trace)
     noise = rms_noise(volt_trace)
     snr = vpkpk/(2*noise)
+    if ant_type == 'hpol':
+        snr = np.sqrt((vpkpk/(2*noise))**2 - noise**2)
 
     return snr
 
