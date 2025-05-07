@@ -156,6 +156,29 @@ def basic_read_root(path_to_root, selectors = [], sampling_rate = 3.2):
     reader.begin(dirs_files = path_to_root, selectors = selectors, overwrite_sampling_rate = sampling_rate)
     return reader
 
+def get_ch_pos(station_id, ch):
+    '''
+    Gets the position of a channel in a station
+    
+    Parameters
+    ----------
+    station_id : int
+        station id
+    ch : int
+        channel
+
+    Returns
+    -------
+    x_rx : float
+    y_rx : float
+    z_rx : float
+    '''
+    receiver_channel = DET.get_channel(station_id, ch)
+    x_rx = receiver_channel['ant_position_x']
+    y_rx = receiver_channel['ant_position_y']
+    z_rx = receiver_channel['ant_position_z']
+    return x_rx, y_rx, z_rx
+
 def get_fiber_for_run(station_id, run):
     '''
     Gets the fiber number for a station and a run
@@ -226,8 +249,8 @@ def get_ref_ch(station_id, run):
     ref_ch : int
         channel id of the receiver channel that is closest to the calibration pulser
     '''
-
-    _, _, z_tx = get_cp_pos(station_id=station_id, run=run)
+    PA_CHS = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    _, _, z_tx = get_cp_pos(station_id, run=run)
     channel_depths = []
     for ch in PA_CHS:
         _, _, z_rx = get_ch_pos(station_id=station_id, ch=ch)
@@ -267,7 +290,7 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
             },        
     ]
     '''
-    event_ids, times, volts = [], [], []    
+    event_ids, times, volts = [], [], []  
     for index, event in enumerate(reader.run()):
         times.append({})
         volts.append({})
@@ -281,20 +304,15 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
             times[index][channel.get_id()] = channel.get_times()
             volts[index][channel.get_id()] = channel.get_trace()
         if pulse_filter:
-            reference_channel = get_ref_ch(station_id=station_id, run=run)
-            no_pulse_event_index = []
-            for index in range(len(volts)):
-                waveform_ref_i = volts[index][reference_channel]
-                waveform_mean_ref_i = waveform_ref_i - np.mean(waveform_ref_i) #dc offset
-                pulse_found = False
-                if np.max(np.abs(waveform_mean_ref_i)) > pulse_rms_factor*np.std(waveform_mean_ref_i):
-                    pulse_found = True
-                    break
-                if not pulse_found:
-                    no_pulse_event_index.append(index)
-            no_pulse_event_index.sort(reverse=True)
-            for index in no_pulse_event_index:
-                volts.pop(index)
-                times.pop(index)
+            run_id = event.get_run_number()
+            reference_channel = get_ref_ch(station_id, run_id)
+            waveform_ref_i = volts[index][reference_channel]
+            waveform_mean_ref_i = waveform_ref_i - np.mean(waveform_ref_i)
+            pulse_found = False
+            if np.max(np.abs(waveform_mean_ref_i)) > pulse_rms_factor*np.std(waveform_mean_ref_i):
+                pulse_found = True
+            if not pulse_found:
                 event_ids.pop(index)
+                times.pop(index)
+                volts.pop(index)
     return event_ids, times, volts
