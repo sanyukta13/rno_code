@@ -300,19 +300,32 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         AddCableDelay.run(event, station, DET, mode='subtract')
         if band_pass:
             BandPassFilter.run(event, station, DET, passband = [175*units.MHz, 750*units.MHz])
-        for channel in station.iter_channels():
-            times[index][channel.get_id()] = channel.get_times()
-            volts[index][channel.get_id()] = channel.get_trace()
+        pulse_found = True
         if pulse_filter:
             run_id = event.get_run_number()
             reference_channel = get_ref_ch(station_id, run_id)
-            waveform_ref_i = volts[index][reference_channel]
+            for channel in station.iter_channels():
+                if channel.get_id() == reference_channel:
+                    waveform_ref_i = channel.get_trace()
             waveform_mean_ref_i = waveform_ref_i - np.mean(waveform_ref_i)
             pulse_found = False
             if np.max(np.abs(waveform_mean_ref_i)) > pulse_rms_factor*np.std(waveform_mean_ref_i):
-                pulse_found = True
-            if not pulse_found:
-                event_ids.pop(index)
-                times.pop(index)
-                volts.pop(index)
-    return event_ids, times, volts
+                if np.argmax(np.abs(waveform_mean_ref_i))>150 and np.argmax(np.abs(waveform_mean_ref_i))<1898:
+                    pulse_found = True
+        if pulse_found:
+            for channel in station.iter_channels():
+                times[index][channel.get_id()] = channel.get_times()
+                volts[index][channel.get_id()] = channel.get_trace()
+        else:
+            times[index] = None
+            volts[index] = None
+            event_ids.pop(-1)
+    
+    filtered_data = [(volt, time) for volt, time in zip(volts, times) if volt is not None]
+    if filtered_data:
+        v, t = zip(*filtered_data)
+        v, t = list(v), list(t)  # Convert back to lists if needed
+    else:
+        v, t = [], []  # Assign empty lists if no valid data is found
+    
+    return event_ids, t, v
