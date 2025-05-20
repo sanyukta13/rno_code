@@ -196,17 +196,22 @@ def get_fiber_for_run(station_id, run):
         fiber number if run is found in <DATA_PATH_ROOT>/st<station_id>/fiber<fiber_number>/st<station_id>_run<run>.root
         else None
     '''
-    
-    file_0 = DATA_PATH_ROOT + '/station' + str(station_id) + '/fiber0/station' + str(station_id) + '_run' + str(run) + '_combined.root'
-    file_1 = DATA_PATH_ROOT + '/station' + str(station_id) + '/fiber1/station' + str(station_id) + '_run' + str(run) + '_combined.root'
     fiber_number = None
-    if os.path.isfile(file_0):
-        fiber_number = 0
-    elif os.path.isfile(file_1):
-        fiber_number = 1
-    else:
+    atts = [0, 5, 10, 20]
+    for att in atts:
+        file_0 = DATA_PATH_ROOT + '/station' + str(station_id) + '/fiber0/' + str(att) + 'dB/station' + str(station_id) + '_run' + str(run) + '_combined.root'
+        file_1 = DATA_PATH_ROOT + '/station' + str(station_id) + '/fiber1/' + str(att) + 'dB/station' + str(station_id) + '_run' + str(run) + '_combined.root'
+        if os.path.isfile(file_0):
+            fiber_number = 0
+            break
+        elif os.path.isfile(file_1):
+            fiber_number = 1
+            break
+    
+    if fiber_number is None:
         print(f"File not found for station {station_id} and run {run}")
         return None
+    
     return fiber_number
 
 def get_cp_pos(station_id, run):
