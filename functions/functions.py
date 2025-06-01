@@ -84,18 +84,29 @@ def rms_noise(volt_trace):
 
     return noise
 
-def get_snr(volt_trace, ant_type='vpol'):
+def get_snr(volt_trace, ant_type='vpol', scaling=1, atten=0):
     """
     Calculate the signal-to-noise ratio (SNR) of a voltage trace.
     
     Parameters:
     - volt_trace (numpy array): Voltage trace
     - ant_type (str): Antenna type, vpol or hpol, slight correction in snr for hpol, default is 'vpol'
-    
+    - scaling (float): Scaling factor for the voltage tracpe to scale non-0 attenuation waveforms to 0dB, default is 1 (scaling on)
+    - atten (float): Attenuation in dB, default is 0 (no attenuation)    
     Returns:
     - snr (float): Signal-to-noise ratio
     """
-    vpkpk = np.max(volt_trace) - np.min(volt_trace)
+    pos_scale = 1
+    neg_scale = 1
+    if scaling:
+        df = pd.read_csv('atten_scaling5C.csv')
+        if atten in df['atten'].values:
+            pos_scale = df['pos_factor'][df['atten']==atten].values[0]
+            neg_scale = df['neg_factor'][df['atten']==atten].values[0]
+        else:
+            print(f'Attenuation {atten} not found in scaling file, no scaling applied')
+
+    vpkpk = np.max(volt_trace)*pos_scale - np.min(volt_trace)*neg_scale
     noise = rms_noise(volt_trace)
     snr = vpkpk/(2*noise)
     if ant_type == 'hpol':
