@@ -99,7 +99,7 @@ def get_snr(volt_trace, ant_type='vpol', scaling=1, atten=0):
     pos_scale = 1
     neg_scale = 1
     if scaling:
-        df = pd.read_csv('atten_scaling5C.csv')
+        df = pd.read_csv('/data/user/sanyukta/rno_code/fucntions/atten_scaling5C.csv')
         if atten in df['atten'].values:
             pos_scale = df['pos_factor'][df['atten']==atten].values[0]
             neg_scale = df['neg_factor'][df['atten']==atten].values[0]

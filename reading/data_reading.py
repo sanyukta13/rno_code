@@ -276,6 +276,7 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         0 if pulse filter is not to be applied, 1 if pulse filter is to be applied, default is 0
     pulse_rms_factor : int, optional
         pulse rms factor to be used for pulse filter, default is 6
+    ----------
     Returns times, volts, events in the following format
     volts - [
 -> event 1  {
