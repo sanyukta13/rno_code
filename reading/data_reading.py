@@ -1,5 +1,5 @@
 import numpy as np
-import os
+import os, sys
 from os import listdir
 from os.path import isfile, join
 import uproot
@@ -7,124 +7,28 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import NuRadioReco
 from NuRadioReco.framework.base_trace import BaseTrace
-from NuRadioReco.utilities import units, fft
+from NuRadioReco.utilities import units, fft, signal_processing
 from NuRadioReco.utilities.fft import time2freq, freq2time
 from NuRadioReco.modules import channelAddCableDelay, channelBandPassFilter, sphericalWaveFitter
 from NuRadioReco.detector import detector
 from NuRadioReco.modules.io.RNO_G import readRNOGDataMattak
-import astropy.time
-import logging
-import json
-import warnings
+import astropy.time, logging, json, warnings
 from astropy.utils.exceptions import AstropyDeprecationWarning
 from datetime import datetime
 from scipy.signal import correlate
 
+sys.path.append(os.path.abspath('/home/sanyukta/software/source/analysis-tools/rnog_analysis_tools'))
+from glitch_unscrambler.glitch_detection_per_event import diff_sq, is_channel_scrambled
+from glitch_unscrambler.glitch_unscrambler import unscramble
+
 # Suppress the AstropyDeprecationWarning
 warnings.filterwarnings('ignore', category=AstropyDeprecationWarning)
+
 AddCableDelay = channelAddCableDelay.channelAddCableDelay()
 BandPassFilter = channelBandPassFilter.channelBandPassFilter()
 DET = detector.Detector(json_filename = "/home/sanyukta/software/source/NuRadioMC/NuRadioReco/detector/RNO_G/RNO_season_2023.json")
 DET.update(datetime.now())
 DATA_PATH_ROOT = '/data/user/sanyukta/rno_data/cal_pulser'
-
-# reader for read_raw_traces
-def read_root_file(station_number, run, selectors=[], sampling_rate=3.2):
-    '''
-    Reads the root file of the specified station and run and returns a NuRadioReco.modules.io.RNO_G.readRNOGData reader object.
-    1) Create a NuRadioReco.modules.io.RNO_G.readRNOGData object
-    2) Find out fiber number of this station number and run
-    3) Generate filepath of the run using station number, fiber number and run
-    4) Begin reading this filepath using the readRNOGData object
-    
-    Parameters
-    ----------
-    station_id : int
-        station id
-    run : int
-        run number
-    selectors : list, optional
-        list of selectors or filters you want to apply on the events read, default is an empty list
-    sampling_rate : float, optional
-        sampling rate in GHz at which to read volts, default is 3.2, use 2.4 for 2024 data
-
-    Returns
-    -------
-    reader : NuRadioReco.modules.io.RNO_G.readRNOGData
-        readRNOGData object that can be used to fetch volts and times lists to construct a dataset for the run, None if file not found
-    '''
-    
-    reader = readRNOGDataMattak.readRNOGData()
-    fiber_number = get_fiber_for_run(station_id=station_number, run=run)
-    print(fiber_number)
-    if fiber_number is not None:
-        file = DATA_PATH_ROOT + '/st' + str(station_number) + '/fiber' + str(fiber_number) + '/st' + str(station_number) + '_run' + str(run) + '.root'
-    else:
-        print("File not found")
-        return None
-    print(file)
-    reader.begin(dirs_files=file, selectors=selectors, overwrite_sampling_rate=sampling_rate)
-    return reader
-
-# pulsed events only (cal pulser runs)
-def read_raw_traces(station_id, run, sampling_rate=3.2, pulse_rms_factor=6):
-    '''
-    Returns times, volts, events in the following format
-    volts - [
--> event 1  {
-    -> channel  0: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] 
-    -> channel  1: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    ...
-    -> channel 7: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-          -> time  t0 t1 t2 t3 t4 t5 t6 t7 t8 t9
-            },
-...            
--> event n  {
-    -> channel  0: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] 
-    -> channel  1: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    ...
-    -> channel 20: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-          -> time  t0 t1 t2 t3 t4 t5 t6 t7 t8 t9            
-            },        
-    ]
-    '''
-    selectors = [lambda event_info: (event_info.sysclk - event_info.sysclkLastPPS[0]) % (2**32) <= CAL_PULSER_THRESHOLD]
-    reader = read_root_file(station_number=station_id, run=run, selectors=selectors)
-    event_ids, times, volts = [], [], []
-
-    # Read all events after cal pulser threshold is applied
-    
-    for index, event in enumerate(reader.run()):
-        times.append({})
-        volts.append({})
-        event_ids.append(event.get_id())
-        station = event.get_station(station_id=station_id)
-        AddCableDelay.run(event, station, DET, mode='subtract')
-        for ch in PA_CHS:
-            channel = station.get_channel(ch)
-            times[index][ch] = channel.get_times()
-            volts[index][ch] = channel.get_trace()
-
-    # Filter out all events that don't have a pulse in the receiver channel closest to the cal pulser
-    
-    reference_channel = get_ref_ch(station_id=station_id, run=run)
-    no_pulse_event_index = []
-    for index in range(len(volts)):
-        waveform_ref_i = volts[index][reference_channel]
-        waveform_mean_ref_i = waveform_ref_i - np.mean(waveform_ref_i) #dc offset
-        pulse_found = False
-        for i in range(2, len(waveform_mean_ref_i)):
-            if np.abs(waveform_mean_ref_i[i]) > np.mean(waveform_mean_ref_i[0:i]) + pulse_rms_factor*np.std(waveform_mean_ref_i[0:i]):
-                pulse_found = True
-                break
-        if not pulse_found:
-            no_pulse_event_index.append(index)
-    no_pulse_event_index.sort(reverse=True)
-    for index in no_pulse_event_index:
-        volts.pop(index)
-        times.pop(index)
-        event_ids.pop(index)
-    return event_ids, times, volts
 
 # basic reader for rno-g root files
 def basic_read_root(path_to_root, selectors = [], sampling_rate = 3.2):
@@ -303,9 +207,33 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         event_ids.append(event.get_id())
         station_id = event.get_station_ids()[0]
         station = event.get_station(station_id)
+
+        glitch_chs = []; glitch_volts = {}
+        for channel in station.iter_channels():
+            # glitch detection and correction
+            if is_channel_scrambled(channel.get_trace())>0:
+                glitch_chs.append(channel.get_id())
+                voltage_trace = unscramble(channel.get_trace())
+                # band pass filter for unscrambled trace
+                if band_pass:
+                    sampling_rate = channel.get_sampling_rate()
+                    tr = NuRadioReco.framework.base_trace.BaseTrace()
+                    tr.set_trace(np.zeros_like(voltage_trace), sampling_rate)
+                    frequencies = tr.get_frequencies()
+                    spectrum = time2freq(voltage_trace, sampling_rate)
+                    for i in np.where(frequencies < 175*units.MHz)[0]:
+                        spectrum[i] = 0
+                    for i in np.where(frequencies > 750*units.MHz)[0]:
+                        spectrum[i] = 0
+                    glitch_volts[channel.get_id()] = freq2time(spectrum, sampling_rate)
+                else:
+                    glitch_volts[channel.get_id()] = voltage_trace
+        
         AddCableDelay.run(event, station, DET, mode='subtract')
+        
         if band_pass:
             BandPassFilter.run(event, station, DET, passband = [175*units.MHz, 750*units.MHz])
+        
         pulse_found = True
         if pulse_filter:
             run_id = event.get_run_number()
@@ -318,20 +246,24 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
             if np.max(np.abs(waveform_mean_ref_i)) > pulse_rms_factor*np.std(waveform_mean_ref_i):
                 if np.argmax(np.abs(waveform_mean_ref_i))>150 and np.argmax(np.abs(waveform_mean_ref_i))<1898:
                     pulse_found = True
+        
         if pulse_found:
             for channel in station.iter_channels():
                 times[index][channel.get_id()] = channel.get_times()
-                volts[index][channel.get_id()] = channel.get_trace()
+                if channel.get_id() in glitch_chs:
+                    # if channel is scrambled, use unscrambled trace
+                    volts[index][channel.get_id()] = glitch_volts[channel.get_id()]
+                else:
+                    volts[index][channel.get_id()] = channel.get_trace()
         else:
             times[index] = None
             volts[index] = None
             event_ids.pop(-1)
-    
+
     filtered_data = [(volt, time) for volt, time in zip(volts, times) if volt is not None]
     if filtered_data:
         v, t = zip(*filtered_data)
         v, t = list(v), list(t)  # Convert back to lists if needed
     else:
         v, t = [], []  # Assign empty lists if no valid data is found
-    
     return event_ids, t, v

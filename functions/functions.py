@@ -18,7 +18,8 @@ import json
 import warnings
 from astropy.utils.exceptions import AstropyDeprecationWarning
 from datetime import datetime
-from scipy.signal import correlate
+from scipy.signal import correlate, hilbert
+from scipy.integrate import simpson
 
 # Suppress the AstropyDeprecationWarning
 warnings.filterwarnings('ignore', category=AstropyDeprecationWarning)
@@ -113,6 +114,25 @@ def get_snr(volt_trace, ant_type='vpol', scaling=1, atten=0):
         snr = np.sqrt((vpkpk/(2*noise))**2 - noise**2)
 
     return snr
+
+def get_hilbert_snr(volt_trace, time_trace, ant_type='vpol', scaling=1, atten=0):
+    """
+    Calculate the signal-to-noise ratio (SNR) of a voltage trace using the Hilbert transform.
+    
+    Parameters:
+    - volt_trace (numpy array): Voltage trace
+    - ant_type (str): Antenna type, vpol or hpol, slight correction in snr for hpol, default is 'vpol'
+    - scaling (float): Scaling factor for the voltage tracpe to scale non-0 attenuation waveforms to 0dB, default is 1 (scaling on)
+    - atten (float): Attenuation in dB, default is 0 (no attenuation)    
+    Returns:
+    - snr (float): Signal-to-noise ratio
+    """
+    h = np.abs(hilbert(volt_trace))
+    pk = np.argmax(h)
+    integral = simps(h[pk-60:pk+60], x = time_trace[pk-60:pk+60])
+    noise = rms_noise(volt_trace)
+
+    return integral/noise
 
 def set_plot(nrows, ncols, xlabel, ylabel, dpi=200, figsize=None, grid=True):
     """
