@@ -129,7 +129,10 @@ def get_hilbert_snr(volt_trace, time_trace, ant_type='vpol', scaling=1, atten=0)
     """
     h = np.abs(hilbert(volt_trace))
     pk = np.argmax(h)
-    integral = simpson(h[pk-60:pk+60], x = time_trace[pk-60:pk+60])
+    # Ensure indices are within bounds
+    start_idx = max(0, pk-60)
+    end_idx = min(len(time_trace), pk+60)
+    integral = simpson(h[start_idx:end_idx], x=time_trace[start_idx:end_idx])
     noise = rms_noise(volt_trace)
 
     return integral/noise
