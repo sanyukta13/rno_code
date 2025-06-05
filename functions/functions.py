@@ -165,3 +165,46 @@ def set_plot(nrows, ncols, xlabel, ylabel, dpi=200, figsize=None, grid=True):
             if grid:
                 ax[i].grid()
     return fig, ax
+
+def zenith(x_r, y_r, z_r, x_t, y_t, z_t, err=0.1):
+    """
+    Calculate the zenith angle between two points in 3D space and propagate the error
+    
+    Parameters:
+    ----------
+    x_r, y_r, z_r: float
+        Coordinates of the receiver
+    x_t, y_t, z_t: float
+        Coordinates of the transmitter
+    err: float
+        Error in the coordinates (default is 0.1)
+
+    Returns:
+    -------
+    zenith: float
+        Zenith angle in degrees
+    sigma_theta: float
+        Error in the zenith angle in degrees
+    """
+    a = x_r - x_t
+    b = y_r - y_t
+    c = np.abs(z_r) - np.abs(z_t)
+    xy_dist = np.sqrt(a**2 + b**2)
+    r = np.sqrt(a**2 + b**2 + c**2)
+    f = c / r
+    zenith = np.degrees(np.arccos(f))
+    
+    # Partial derivatives
+    d_f_da = (a / (xy_dist * r)) - (a * xy_dist) / (r**3)
+    d_f_db = (b / (xy_dist * r)) - (b * xy_dist) / (r**3)
+    d_f_dc = (1 / r) - (c**2) / (r**3)
+    
+    # Error propagation
+    sigma_f = np.sqrt(
+        (d_f_da * err)**2 +
+        (d_f_db * err)**2 +
+        (d_f_dc * err)**2
+    )
+    # Error in theta (radians)
+    sigma_theta = sigma_f / np.sqrt(1 - f**2)
+    return zenith, (sigma_theta * 180 / np.pi) # convert to degrees
