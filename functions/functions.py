@@ -121,21 +121,37 @@ def get_hilbert_snr(volt_trace, time_trace, ant_type='vpol', scaling=1, atten=0)
     
     Parameters:
     - volt_trace (numpy array): Voltage trace
+    - time_trace (numpy array): Time trace corresponding to the voltage trace
     - ant_type (str): Antenna type, vpol or hpol, slight correction in snr for hpol, default is 'vpol'
     - scaling (float): Scaling factor for the voltage tracpe to scale non-0 attenuation waveforms to 0dB, default is 1 (scaling on)
     - atten (float): Attenuation in dB, default is 0 (no attenuation)    
     Returns:
     - snr (float): Signal-to-noise ratio
     """
+    integral = get_hilbert_integral(volt_trace, time_trace, 60)
+    noise = rms_noise(volt_trace)
+    
+    return integral/noise
+
+def get_hilbert_integral(volt_trace, time_trace, width=60):
+    """
+    Calculate the integral of the Hilbert transform of the peak of a voltage trace.
+    
+    Parameters:
+    - volt_trace (numpy array): Voltage trace
+    - time_trace (numpy array): Time trace corresponding to the voltage trace
+    - width (int): Width around the peak to consider for the integral, default is 60 samples
+    Returns:
+    - integral (float): Integral of the Hilbert transform
+    """
     h = np.abs(hilbert(volt_trace))
     pk = np.argmax(h)
     # Ensure indices are within bounds
-    start_idx = max(0, pk-60)
-    end_idx = min(len(time_trace), pk+60)
+    start_idx = max(0, pk-width)
+    end_idx = min(len(time_trace), pk+width)
     integral = simpson(h[start_idx:end_idx], x=time_trace[start_idx:end_idx])
-    noise = rms_noise(volt_trace)
-
-    return integral/noise
+    
+    return integral
 
 def set_plot(nrows, ncols, xlabel, ylabel, dpi=200, figsize=None, grid=True):
     """
