@@ -128,10 +128,19 @@ def get_hilbert_snr(volt_trace, time_trace, ant_type='vpol', scaling=1, atten=0)
     Returns:
     - snr (float): Signal-to-noise ratio
     """
-    integral = get_hilbert_integral(volt_trace, time_trace, 60)
+    scale = 1
+    if scaling:
+        df = pd.read_csv('/data/user/sanyukta/rno_code/functions/atten_scaling5C.csv')
+        if atten in df['atten'].values:
+            scale = df['hilbert_factor'][df['atten']==atten].values[0]
+        else:
+            print(f'Attenuation {atten} not found in scaling file, no scaling applied')
+    integral = get_hilbert_integral(volt_trace, time_trace, 60)*scale
     noise = rms_noise(volt_trace)
-    
-    return integral/noise
+    snr = integral/noise
+    if ant_type == 'hpol':
+        snr = np.sqrt((integral/noise)**2 - noise**2)
+    return snr
 
 def get_hilbert_integral(volt_trace, time_trace, width=60):
     """
