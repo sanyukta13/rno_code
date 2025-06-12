@@ -15,8 +15,8 @@ CAL_PULSER_THRESHOLD = 200000
 selector = [lambda event_info: (event_info.sysclk - event_info.sysclkLastPPS[0]) % (2**32) <= CAL_PULSER_THRESHOLD]
 
 df = pd.DataFrame(columns=['station', 'run', 'fiber', 'att', 'ch', 'snr', 'snr_sigma', 'hilbert_snr', 'hilbert_snr_sigma', 'zenith', 'zenith_sigma',
-                           'vpos', 'vpos_sigma', 'vneg', 'vneg_sigma', 'vdiff'])
-station_id = 11
+                           'vpos', 'vpos_sigma', 'vneg', 'vneg_sigma', 'integral', 'integral_sigma', 'vdiff'])
+station_id = 23
 fibers = [0, 1]
 atts = [0, 5, 10, 20]
 for fiber in fibers:
@@ -83,6 +83,8 @@ for fiber in fibers:
                 'vpos_sigma': list(vpkpos_sigma.values()),
                 'vneg': list(vpkneg.values()),
                 'vneg_sigma': list(vpkneg_sigma.values()),
+                'integral': list(integral.values()),
+                'integral_sigma': list(integral_sigma.values()),
                 'vdiff': list(vdiff.values())
             })
 

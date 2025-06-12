@@ -69,19 +69,30 @@ def get_bins(bin_width, data):
     bins = np.linspace(min_val, max_val, num_bins + 1)
     return bins
 
-def rms_noise(volt_trace):
+def rms_noise(volt_trace, method=):
     """
     Calculate the root mean square (RMS) noise of a voltage trace.
     
     Parameters:
     - volt_trace (numpy array): Voltage trace
+    - method (str): Method to calculate RMS noise, for get_snr use 'peak' to calculate noise around the peak. 
+        For get_hilbert_snr use 'hilbert envelope' to calculate noise around the peak of the hilbert transform.
     
     Returns:
     - rms (float): RMS noise
     """
-    pk_pos = np.argmax(volt_trace)
-    noise_wf = np.concatenate((volt_trace[:pk_pos-200], volt_trace[pk_pos+200:]))
-    noise = np.sqrt(np.mean(noise_wf**2))
+    if method == 'peak':
+        pk_pos = np.argmax(volt_trace)
+        noise_wf = np.concatenate((volt_trace[:pk_pos-200], volt_trace[pk_pos+200:]))
+        noise = np.sqrt(np.mean(noise_wf**2))
+    
+    elif method == 'hilbert':
+        h = np.abs(hilbert(volt_trace))
+        pk = np.argmax(h)  
+        noise_h = np.concatenate((h[:pk-200], h[pk+200:]))
+        noise = simpson(noise_h, dx = 0.3) #assuming time trace corresponding to a resolution of 0.3 ns
+    else:
+        raise ValueError("Invalid method. Use 'peak' or 'hilbert'.")
 
     return noise
 
