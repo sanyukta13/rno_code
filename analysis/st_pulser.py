@@ -15,7 +15,7 @@ CAL_PULSER_THRESHOLD = 200000
 selector = [lambda event_info: (event_info.sysclk - event_info.sysclkLastPPS[0]) % (2**32) <= CAL_PULSER_THRESHOLD]
 
 df = pd.DataFrame(columns=['station', 'run', 'fiber', 'att', 'ch', 'snr', 'snr_sigma', 'hilbert_snr', 'hilbert_snr_sigma', 'zenith', 'zenith_sigma',
-                           'vpos', 'vpos_sigma', 'vneg', 'vneg_sigma', 'integral', 'integral_sigma', 'vdiff'])
+                           'vpos', 'vpos_sigma', 'vneg', 'vneg_sigma', 'integral', 'integral_sigma', 'vdiff', 'noise', 'noise_sigma', 'hilbert_noise', 'hilbert_noise_sigma'])
 station_id = 23
 fibers = [0, 1]
 atts = [0, 5, 10, 20]
@@ -32,6 +32,7 @@ for fiber in fibers:
             snr_list = {}; hilbert_snr_list = {}; snr_sigma = {}; hilbert_snr_sigma = {}
             zenith_list = {}; zenith_sigma = {}; vdiff = {}; vpkpos = {}; vpkpos_sigma = {}
             vpkneg = {}; vpkneg_sigma = {}; integral = {}; integral_sigma = {}
+            noise_list = {}; noise_sigma = {}; hilbert_noise_list = {}; hilbert_noise_sigma = {}
             x_t, y_t, z_t = get_cp_pos(station_id, run_id)
             for ch in chs:
                 snr_cp = []
@@ -45,6 +46,8 @@ for fiber in fibers:
                         vneg.append(np.min(volt_trace))
                         vpos.append(np.max(volt_trace))
                         integral_cp = get_hilbert_integral(volt_trace, cptimes[idx][ch])
+                        noise = rms_noise(volt_trace, method='peak')
+                        hilbert_noise = rms_noise(volt_trace, method='hilbert')
                         snr_cp.append(get_snr(volt_trace, ant_type='hpol', atten=att))
                         hsnr_cp.append(get_hilbert_snr(volt_trace, cptimes[idx][ch], ant_type='hpol', atten=att))
                 else:
@@ -53,6 +56,8 @@ for fiber in fibers:
                         vneg.append(np.min(volt_trace))
                         vpos.append(np.max(volt_trace))
                         integral_cp = get_hilbert_integral(volt_trace, cptimes[idx][ch])
+                        noise = rms_noise(volt_trace, method='peak')
+                        hilbert_noise = rms_noise(volt_trace, method='hilbert')
                         snr_cp.append(get_snr(volt_trace, atten=att))
                         hsnr_cp.append(get_hilbert_snr(volt_trace, cptimes[idx][ch], ant_type='hpol', atten=att))
 
@@ -62,6 +67,8 @@ for fiber in fibers:
                 vpkneg[ch] = np.mean(vneg); vpkneg_sigma[ch] = np.std(vneg)
                 integral[ch] = np.mean(integral_cp); integral_sigma[ch] = np.std(integral_cp)
                 vdiff[ch] = vpkpos[ch] - np.abs(vpkneg[ch])
+                noise_list[ch] = np.mean(noise); noise_sigma[ch] = np.std(noise)
+                hilbert_noise_list[ch] = np.mean(hilbert_noise); hilbert_noise_sigma[ch] = np.std(hilbert_noise)
 
                 x_r, y_r, z_r = get_ch_pos(station_id, ch)
                 zenith_list[ch], zenith_sigma[ch] = zenith(x_r, y_r, z_r, x_t, y_t, z_t)
@@ -85,7 +92,11 @@ for fiber in fibers:
                 'vneg_sigma': list(vpkneg_sigma.values()),
                 'integral': list(integral.values()),
                 'integral_sigma': list(integral_sigma.values()),
-                'vdiff': list(vdiff.values())
+                'vdiff': list(vdiff.values()),
+                'noise': list(noise_list.values()),
+                'noise_sigma': list(noise_sigma.values()),
+                'hilbert_noise': list(hilbert_noise_list.values()),
+                'hilbert_noise_sigma': list(hilbert_noise_sigma.values())
             })
 
             # Use pd.concat to combine the existing DataFrame with the new data
