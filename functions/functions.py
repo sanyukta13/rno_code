@@ -85,16 +85,19 @@ def rms_noise(volt_trace, method=):
         pk_pos = np.argmax(volt_trace)
         noise_wf = np.concatenate((volt_trace[:pk_pos-200], volt_trace[pk_pos+200:]))
         noise = np.sqrt(np.mean(noise_wf**2))
-    
+        return noise
+
     elif method == 'hilbert':
         h = np.abs(hilbert(volt_trace))
         pk = np.argmax(h)  
         noise_h = np.concatenate((h[:pk-200], h[pk+200:]))
         noise = simpson(noise_h, dx = 0.3) #assuming time trace corresponding to a resolution of 0.3 ns
+        return noise
+
     else:
         raise ValueError("Invalid method. Use 'peak' or 'hilbert'.")
 
-    return noise
+
 
 def get_snr(volt_trace, ant_type='vpol', scaling=1, atten=0):
     """
@@ -119,7 +122,7 @@ def get_snr(volt_trace, ant_type='vpol', scaling=1, atten=0):
             print(f'Attenuation {atten} not found in scaling file, no scaling applied')
 
     vpkpk = np.max(volt_trace)*pos_scale - np.min(volt_trace)*neg_scale
-    noise = rms_noise(volt_trace)
+    noise = rms_noise(volt_trace, method='peak')
     snr = vpkpk/(2*noise)
     if ant_type == 'hpol':
         snr = np.sqrt((vpkpk/(2*noise))**2 - noise**2)
@@ -148,7 +151,7 @@ def get_hilbert_snr(volt_trace, time_trace, ant_type='vpol', scaling=1, atten=0)
             print(f'Attenuation {atten} not found in scaling file, no scaling applied')
     
     integral = get_hilbert_integral(volt_trace, time_trace, 60)*scale
-    noise = rms_noise(volt_trace)
+    noise = rms_noise(volt_trace, method='hilbert')
     snr = integral/noise
     if ant_type == 'hpol':
         snr = np.sqrt((integral/noise)**2 - noise**2)
