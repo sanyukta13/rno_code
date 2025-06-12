@@ -69,14 +69,14 @@ def get_bins(bin_width, data):
     bins = np.linspace(min_val, max_val, num_bins + 1)
     return bins
 
-def rms_noise(volt_trace, method=):
+def rms_noise(volt_trace, method=None):
     """
     Calculate the root mean square (RMS) noise of a voltage trace.
     
     Parameters:
     - volt_trace (numpy array): Voltage trace
     - method (str): Method to calculate RMS noise, for get_snr use 'peak' to calculate noise around the peak. 
-        For get_hilbert_snr use 'hilbert envelope' to calculate noise around the peak of the hilbert transform.
+        For get_hilbert_snr use 'hilbert envelopse' to calculate noise around the peak of the hilbert transform.
     
     Returns:
     - rms (float): RMS noise
@@ -96,8 +96,6 @@ def rms_noise(volt_trace, method=):
 
     else:
         raise ValueError("Invalid method. Use 'peak' or 'hilbert'.")
-
-
 
 def get_snr(volt_trace, ant_type='vpol', scaling=1, atten=0):
     """
