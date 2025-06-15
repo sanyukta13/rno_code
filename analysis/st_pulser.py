@@ -35,29 +35,25 @@ for fiber in fibers:
             noise_list = {}; noise_sigma = {}; hilbert_noise_list = {}; hilbert_noise_sigma = {}
             x_t, y_t, z_t = get_cp_pos(station_id, run_id)
             for ch in chs:
-                snr_cp = []
-                hsnr_cp = []
-                vpos = []
-                vneg = []
-                integral_cp = []
+                snr_cp = []; hsnr_cp = []
+                vpos = []; vneg = []; integral_cp = []
+                noise = []; hilbert_noise = []
                 if ch==4 or ch==8:
                     for idx,eve in enumerate(cpevents):
                         volt_trace = cpvolts[idx][ch]
-                        vneg.append(np.min(volt_trace))
-                        vpos.append(np.max(volt_trace))
-                        integral_cp = get_hilbert_integral(volt_trace, cptimes[idx][ch])
-                        noise = rms_noise(volt_trace, method='peak')
-                        hilbert_noise = rms_noise(volt_trace, method='hilbert')
+                        vneg.append(np.min(volt_trace)); vpos.append(np.max(volt_trace))
+                        integral_cp.append(get_hilbert_integral(volt_trace, cptimes[idx][ch]))
+                        noise.append(rms_noise(volt_trace, method='peak'))
+                        hilbert_noise.append(rms_noise(volt_trace, method='hilbert'))
                         snr_cp.append(get_snr(volt_trace, ant_type='hpol', atten=att))
                         hsnr_cp.append(get_hilbert_snr(volt_trace, cptimes[idx][ch], ant_type='hpol', atten=att))
                 else:
                     for idx,eve in enumerate(cpevents):
                         volt_trace = cpvolts[idx][ch]
-                        vneg.append(np.min(volt_trace))
-                        vpos.append(np.max(volt_trace))
-                        integral_cp = get_hilbert_integral(volt_trace, cptimes[idx][ch])
-                        noise = rms_noise(volt_trace, method='peak')
-                        hilbert_noise = rms_noise(volt_trace, method='hilbert')
+                        vneg.append(np.min(volt_trace)); vpos.append(np.max(volt_trace))
+                        integral_cp.append(get_hilbert_integral(volt_trace, cptimes[idx][ch]))
+                        noise.append(rms_noise(volt_trace, method='peak'))
+                        hilbert_noise.append(rms_noise(volt_trace, method='hilbert'))
                         snr_cp.append(get_snr(volt_trace, atten=att))
                         hsnr_cp.append(get_hilbert_snr(volt_trace, cptimes[idx][ch], ant_type='hpol', atten=att))
 
