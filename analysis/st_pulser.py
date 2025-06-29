@@ -17,8 +17,8 @@ atts = [0, 5, 10, 20]
 
 df = pd.DataFrame(columns=['station', 'run', 'fiber', 'att', 'ch', 'snr', 'snr_sigma', 'hilbert_snr', 'hilbert_snr_sigma', 'zenith', 'zenith_sigma',
                            'vpos', 'vpos_sigma', 'vneg', 'vneg_sigma', 'integral', 'integral_sigma', 'vdiff', 'noise', 'noise_sigma', 'hilbert_noise', 'hilbert_noise_sigma'])
-def run(station_id):
-    station_id = 
+def run(st_id):
+    station_id = st_id
     for fiber in fibers:
         for att in atts:
             root_files_dir = '/data/user/sanyukta/rno_data/cal_pulser/station'+str(station_id)+'/fiber'+str(fiber)+'/'+str(att)+'dB/'
