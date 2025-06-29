@@ -208,26 +208,11 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         station_id = event.get_station_ids()[0]
         station = event.get_station(station_id)
 
-        glitch_chs = []; glitch_volts = {}
+        glitch_chs = []
         for channel in station.iter_channels():
-            # glitch detection and correction
+            # glitch detection
             if is_channel_scrambled(channel.get_trace())>0:
                 glitch_chs.append(channel.get_id())
-                voltage_trace = unscramble(channel.get_trace())
-                # band pass filter for unscrambled trace
-                if band_pass:
-                    sampling_rate = channel.get_sampling_rate()
-                    tr = NuRadioReco.framework.base_trace.BaseTrace()
-                    tr.set_trace(np.zeros_like(voltage_trace), sampling_rate)
-                    frequencies = tr.get_frequencies()
-                    spectrum = time2freq(voltage_trace, sampling_rate)
-                    for i in np.where(frequencies < 175*units.MHz)[0]:
-                        spectrum[i] = 0
-                    for i in np.where(frequencies > 750*units.MHz)[0]:
-                        spectrum[i] = 0
-                    glitch_volts[channel.get_id()] = freq2time(spectrum, sampling_rate)
-                else:
-                    glitch_volts[channel.get_id()] = voltage_trace
         
         AddCableDelay.run(event, station, DET, mode='subtract')
         
@@ -249,12 +234,13 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         
         if pulse_found:
             for channel in station.iter_channels():
-                times[index][channel.get_id()] = channel.get_times()
                 if channel.get_id() in glitch_chs:
-                    # if channel is scrambled, use unscrambled trace
-                    volts[index][channel.get_id()] = glitch_volts[channel.get_id()]
+                    volts[index][channel.get_id()] = None
+                    times[index][channel.get_id()] = None
                 else:
                     volts[index][channel.get_id()] = channel.get_trace()
+                    times[index][channel.get_id()] = channel.get_times()
+
         else:
             times[index] = None
             volts[index] = None

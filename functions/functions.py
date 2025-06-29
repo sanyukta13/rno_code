@@ -83,15 +83,19 @@ def rms_noise(volt_trace, method=None):
     """
     if method == 'peak':
         pk_pos = np.argmax(volt_trace)
-        noise_wf = np.concatenate((volt_trace[:pk_pos-200], volt_trace[pk_pos+200:]))
-        noise = np.sqrt(np.mean(noise_wf**2))
+        start_idx = max(0, pk_pos - 200)
+        end_idx = min(len(volt_trace), pk_pos + 200)
+        noise_wf = np.concatenate((volt_trace[:start_idx], volt_trace[end_idx:]))
+        noise = np.sqrt(np.mean(noise_wf**2)) 
         return noise
 
     elif method == 'hilbert':
         h = np.abs(hilbert(volt_trace))
-        pk = np.argmax(h)  
-        noise_h = np.concatenate((h[:pk-200], h[pk+200:]))
-        noise = simpson(noise_h, dx = 0.3) #assuming time trace corresponding to a resolution of 0.3 ns
+        pk = np.argmax(h)
+        start_idx = max(0, pk - 200)
+        end_idx = min(len(h), pk + 200)
+        noise_h = np.concatenate((h[:start_idx], h[end_idx:]))
+        noise = simpson(noise_h, dx=0.3)
         return noise
 
     else:
@@ -152,7 +156,7 @@ def get_hilbert_snr(volt_trace, time_trace, ant_type='vpol', scaling=1, atten=0)
     noise = rms_noise(volt_trace, method='hilbert')
     snr = integral/noise
     if ant_type == 'hpol':
-        snr = np.sqrt((integral/noise)**2 - noise**2)
+        snr = np.sqrt(snr**2 - noise**2)
     
     return snr
 
