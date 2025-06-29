@@ -235,8 +235,11 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         if pulse_found:
             for channel in station.iter_channels():
                 if channel.get_id() in glitch_chs:
-                    volts[index][channel.get_id()] = None
-                    times[index][channel.get_id()] = None
+                    #disregard the whole event if any channel is scrambled
+                    times[index] = None
+                    volts[index] = None
+                    event_ids.pop(-1)
+                    break
                 else:
                     volts[index][channel.get_id()] = channel.get_trace()
                     times[index][channel.get_id()] = channel.get_times()

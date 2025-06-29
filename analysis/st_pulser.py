@@ -17,7 +17,7 @@ atts = [0, 5, 10, 20]
 
 df = pd.DataFrame(columns=['station', 'run', 'fiber', 'att', 'ch', 'snr', 'snr_sigma', 'hilbert_snr', 'hilbert_snr_sigma', 'zenith', 'zenith_sigma',
                            'vpos', 'vpos_sigma', 'vneg', 'vneg_sigma', 'integral', 'integral_sigma', 'vdiff', 'noise', 'noise_sigma', 'hilbert_noise', 'hilbert_noise_sigma'])
-def run(st_id):
+def run(st_id, df=df):
     station_id = st_id
     for fiber in fibers:
         for att in atts:

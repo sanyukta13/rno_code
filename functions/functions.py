@@ -95,7 +95,7 @@ def rms_noise(volt_trace, method=None):
         start_idx = max(0, pk - 200)
         end_idx = min(len(h), pk + 200)
         noise_h = np.concatenate((h[:start_idx], h[end_idx:]))
-        noise = simpson(noise_h, dx=0.3)
+        noise = np.sqrt(simpson(noise_h**2, dx=0.3)/len(noise_h))
         return noise
 
     else:
@@ -177,7 +177,6 @@ def get_hilbert_integral(volt_trace, time_trace, width=60):
     start_idx = max(0, pk-width)
     end_idx = min(len(time_trace), pk+width)
     integral = simpson(h[start_idx:end_idx], x=time_trace[start_idx:end_idx])
-    
     return integral
 
 def set_plot(nrows, ncols, xlabel, ylabel, dpi=200, figsize=None, grid=True):
