@@ -168,7 +168,7 @@ def get_ref_ch(station_id, run):
     ref_ch = PA_CHS[np.abs(channel_depths - z_tx).argmin()]
     return ref_ch
 
-def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_factor = 6):
+def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_factor = 6, freq_band_filter=None):
     '''
     Parameters
     ----------
@@ -180,6 +180,8 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         0 if pulse filter is not to be applied, 1 if pulse filter is to be applied, default is 0
     pulse_rms_factor : int, optional
         pulse rms factor to be used for pulse filter, default is 6
+    freq_band_filter : tuple, optional
+        frequency band filter to be applied, default is None
     ----------
     Returns times, volts, events in the following format
     volts - [
@@ -219,6 +221,9 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         if band_pass:
             BandPassFilter.run(event, station, DET, passband = [175*units.MHz, 750*units.MHz])
         
+        if freq_band_filter is not None:
+            BandPassFilter.run(event, station, DET, passband = [freq_band_filter[0]*units.MHz, freq_band_filter[1]*units.MHz])
+
         pulse_found = True
         if pulse_filter:
             run_id = event.get_run_number()
