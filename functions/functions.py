@@ -25,7 +25,7 @@ from scipy.integrate import simpson
 warnings.filterwarnings('ignore', category=AstropyDeprecationWarning)
 AddCableDelay = channelAddCableDelay.channelAddCableDelay()
 
-def align_and_average_voltage_traces(time_values, voltage_traces):
+def align_and_average_voltage_traces(voltage_traces):
     """
     Align and plot individual voltage traces and their average.
 
