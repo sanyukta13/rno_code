@@ -26,7 +26,7 @@ warnings.filterwarnings('ignore', category=AstropyDeprecationWarning)
 
 AddCableDelay = channelAddCableDelay.channelAddCableDelay()
 BandPassFilter = channelBandPassFilter.channelBandPassFilter()
-DET = detector.Detector(json_filename = "/home/sanyukta/software/source/NuRadioMC/NuRadioReco/detector/RNO_G/RNO_season_2023.json")
+DET = detector.Detector(json_filename = "/home/sanyukta/software/source/NuRadioMC/NuRadioReco/detector/RNO_G/RNO_season_2024.json")
 DET.update(datetime.now())
 DATA_PATH_ROOT = '/data/user/sanyukta/rno_data/cal_pulser'
 
@@ -168,7 +168,8 @@ def get_ref_ch(station_id, run):
     ref_ch = PA_CHS[np.abs(channel_depths - z_tx).argmin()]
     return ref_ch
 
-def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_factor = 6, freq_band_filter=None):
+def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_factor = 6,
+                          freq_band_filter=None, cable_delay=1, glitch_filter=1):
     '''
     Parameters
     ----------
@@ -182,6 +183,10 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         pulse rms factor to be used for pulse filter, default is 6
     freq_band_filter : tuple, optional
         frequency band filter to be applied, default is None
+    cable_delay : int, optional
+        cable delay to be applied, default is 1
+    glitch_filter : int, optional
+        0 if glitch filter is not to be applied, 1 if glitch filter is to be applied, default is 1
     ----------
     Returns times, volts, events in the following format
     volts - [
@@ -211,13 +216,15 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         station = event.get_station(station_id)
 
         glitch_chs = []
-        for channel in station.iter_channels():
-            # glitch detection
-            if is_channel_scrambled(channel.get_trace())>0:
-                glitch_chs.append(channel.get_id())
-        
-        AddCableDelay.run(event, station, DET, mode='subtract')
-        
+        if glitch_filter:
+            for channel in station.iter_channels():
+                # glitch detection
+                if is_channel_scrambled(channel.get_trace())>0:
+                    glitch_chs.append(channel.get_id())
+                
+        if cable_delay:
+            AddCableDelay.run(event, station, DET, mode='subtract')
+
         if band_pass:
             BandPassFilter.run(event, station, DET, passband = [175*units.MHz, 750*units.MHz])
         
