@@ -31,7 +31,7 @@ DET.update(datetime.now())
 DATA_PATH_ROOT = '/data/user/sanyukta/rno_data/cal_pulser'
 
 # basic reader for rno-g root files
-def basic_read_root(path_to_root, selectors = [], sampling_rate = 3.2, mattak_kwargs = {}):
+def basic_read_root(path_to_root, selectors = [], sampling_rate = 3.2, mattak_kwargs = {}, max_trigger_rate = 0):
     '''
     Reads the root file and returns a NuRadioReco.modules.io.RNO_G.readRNOGData reader object.
     1) Create a NuRadioReco.modules.io.RNO_G.readRNOGData object
@@ -47,6 +47,8 @@ def basic_read_root(path_to_root, selectors = [], sampling_rate = 3.2, mattak_kw
         sampling rate in GHz at which to read volts, default is 3.2
     mattak_kwargs : dict, optional
         dictionary of keyword arguments to be passed to the mattak reader, default is an empty dict
+    max_trigger_rate : float, optional
+        maximum trigger rate in Hz, default is 0 (no limit)
 
     Returns
     -------
@@ -59,7 +61,7 @@ def basic_read_root(path_to_root, selectors = [], sampling_rate = 3.2, mattak_kw
         print("File not found")
         return None
     print(f"\n reading {path_to_root} ......")
-    reader.begin(dirs_files = path_to_root, selectors = selectors, overwrite_sampling_rate = sampling_rate, mattak_kwargs = mattak_kwargs)
+    reader.begin(dirs_files = path_to_root, selectors = selectors, overwrite_sampling_rate = sampling_rate, mattak_kwargs = mattak_kwargs, max_trigger_rate = max_trigger_rate)
     return reader
 
 def get_ch_pos(station_id, ch):
