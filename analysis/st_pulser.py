@@ -14,7 +14,7 @@ CAL_PULSER_THRESHOLD = 200000
 selector = [lambda event_info: (event_info.sysclk - event_info.sysclkLastPPS[0]) % (2**32) <= CAL_PULSER_THRESHOLD]
 fibers = [0, 1]
 atts = [0, 5, 10, 20]
-freq_bands = [(175,750), (175,300), (300,425), (425,550), (550,750)]
+freq_bands = [(75,900), (75,150), (150,300), (300,450), (450,900)]
 
 df = pd.DataFrame(columns=['station', 'run', 'fiber', 'att', 'freq_band', 'ch', 'snr', 'snr_sigma', 'hilbert_snr', 'hilbert_snr_sigma', 'zenith', 'zenith_sigma',
                            'vpos', 'vpos_sigma', 'vneg', 'vneg_sigma', 'integral', 'integral_sigma', 'vdiff', 'noise', 'noise_sigma', 'hilbert_noise', 'hilbert_noise_sigma'])
