@@ -31,7 +31,7 @@ DET.update(datetime.now())
 DATA_PATH_ROOT = '/data/user/sanyukta/rno_data/cal_pulser'
 
 # basic reader for rno-g root files
-def basic_read_root(path_to_root, selectors = [], sampling_rate = 3.2, mattak_kwargs = {}, max_trigger_rate = 0):
+def basic_read_root(path_to_root, selectors = [], sampling_rate = None, mattak_kwargs = {}, max_trigger_rate = 0):
     '''
     Reads the root file and returns a NuRadioReco.modules.io.RNO_G.readRNOGData reader object.
     1) Create a NuRadioReco.modules.io.RNO_G.readRNOGData object
@@ -44,7 +44,7 @@ def basic_read_root(path_to_root, selectors = [], sampling_rate = 3.2, mattak_kw
     selector : list, optional
         list of selectors or filters you want to apply on the events read, default is an empty list
     sampling_rate : float, optional
-        sampling rate in GHz at which to read volts, default is 3.2
+        sampling rate in GHz at which to read volts, default is None (original sampling rate), needed for old mattak files
     mattak_kwargs : dict, optional
         dictionary of keyword arguments to be passed to the mattak reader, default is an empty dict
     max_trigger_rate : float, optional
@@ -272,3 +272,19 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
     else:
         v, t = [], []  # Assign empty lists if no valid data is found
     return event_ids, t, v
+
+def get_event_info(reader, keys=['eventNumber', 'triggerTime']):
+    '''
+    Parameters
+    ----------
+    reader : NuRadioReco.modules.io.RNO_G.readRNOGData
+        readRNOGData object that can be used to fetch volts and times lists to construct a dataset for the run
+    keys : list, optional
+        list of keys to be fetched from the event information, default is ['eventNumber', 'triggerTime']
+    
+    Returns
+    -------
+    event_info : list
+        list of event information dictionaries
+    '''
+    return reader.get_events_information(keys=keys)
