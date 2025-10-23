@@ -9,8 +9,9 @@ import NuRadioReco
 from NuRadioReco.framework.base_trace import BaseTrace
 from NuRadioReco.utilities import units, fft, signal_processing
 from NuRadioReco.utilities.fft import time2freq, freq2time
-from NuRadioReco.modules import channelAddCableDelay, channelBandPassFilter, channelCWNotchFilter, hardwareResponseIncorporator
+from NuRadioReco.modules import channelAddCableDelay, channelBandPassFilter, channelCWNotchFilter
 from NuRadioReco.detector import detector
+import NuRadioReco.modules.RNO_G.hardwareResponseIncorporator
 from NuRadioReco.modules.io.RNO_G import readRNOGDataMattak
 import astropy.time, logging, json, warnings
 from astropy.utils.exceptions import AstropyDeprecationWarning
