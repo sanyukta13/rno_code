@@ -9,7 +9,7 @@ import NuRadioReco
 from NuRadioReco.framework.base_trace import BaseTrace
 from NuRadioReco.utilities import units, fft, signal_processing
 from NuRadioReco.utilities.fft import time2freq, freq2time
-from NuRadioReco.modules import channelAddCableDelay, channelBandPassFilter, sphericalWaveFitter
+from NuRadioReco.modules import channelAddCableDelay, channelBandPassFilter, channelCWNotchFilter
 from NuRadioReco.detector import detector
 from NuRadioReco.modules.io.RNO_G import readRNOGDataMattak
 import astropy.time, logging, json, warnings
@@ -24,6 +24,8 @@ from glitch_unscrambler.glitch_unscrambler import unscramble
 # Suppress the AstropyDeprecationWarning
 warnings.filterwarnings('ignore', category=AstropyDeprecationWarning)
 
+CWNotchFilter = channelCWNotchFilter.channelCWNotchFilter()
+CWNotchFilter.begin()
 AddCableDelay = channelAddCableDelay.channelAddCableDelay()
 BandPassFilter = channelBandPassFilter.channelBandPassFilter()
 DET = detector.Detector(json_filename = "/home/sanyukta/software/source/NuRadioMC/NuRadioReco/detector/RNO_G/RNO_season_2024.json")
@@ -173,7 +175,7 @@ def get_ref_ch(station_id, run):
     return ref_ch
 
 def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_factor = 6,
-                          freq_band_filter=None, cable_delay=1, glitch_filter=1):
+                          freq_band_filter=None, cable_delay=1, cwsubtract=1, glitch_filter=1):
     '''
     Parameters
     ----------
@@ -228,7 +230,8 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
                 
         if cable_delay:
             AddCableDelay.run(event, station, DET, mode='subtract')
-
+        if cwsubtract:
+            CWNotchFilter.run(event, station, DET)
         if band_pass:
             BandPassFilter.run(event, station, DET, passband = [175*units.MHz, 750*units.MHz])
         
