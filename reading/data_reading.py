@@ -13,6 +13,7 @@ from NuRadioReco.modules import channelAddCableDelay, channelBandPassFilter, cha
 from NuRadioReco.detector import detector
 from NuRadioReco.modules.RNO_G import hardwareResponseIncorporator
 from NuRadioReco.modules.io.RNO_G import readRNOGDataMattak
+from NuRadioReco.modules.io import eventWriter
 import astropy.time, logging, json, warnings
 from astropy.utils.exceptions import AstropyDeprecationWarning
 from datetime import datetime
@@ -27,6 +28,7 @@ warnings.filterwarnings('ignore', category=AstropyDeprecationWarning)
 
 CWNotchFilter = channelCWNotchFilter.channelCWNotchFilter()
 CWNotchFilter.begin()
+eventWriter = eventWriter.eventWriter()
 hardRespIncorporator = hardwareResponseIncorporator.hardwareResponseIncorporator()
 AddCableDelay = channelAddCableDelay.channelAddCableDelay()
 BandPassFilter = channelBandPassFilter.channelBandPassFilter()
@@ -177,7 +179,8 @@ def get_ref_ch(station_id, run):
     return ref_ch
 
 def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_factor = 6,
-                          freq_band_filter=None, cable_delay=1, cwsubtract=1, glitch_filter=1):
+                          freq_band_filter = None, cable_delay = 1, cwsubtract = 1, 
+                          glitch_filter = 1, savefile = 0, filename = 'rnog'):
     '''
     Parameters
     ----------
@@ -195,6 +198,12 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         cable delay to be applied, default is 1
     glitch_filter : int, optional
         0 if glitch filter is not to be applied, 1 if glitch filter is to be applied, default is 1
+    cwsubtract : int, optional
+        0 if cw subtract is not to be applied, 1 if cw subtract is to be applied, default is 1
+    savefile : int, optional
+        0 if nur file is not to be saved, 1 if nur file is to be saved, default is 0
+    filename : str, optional
+        name of the nur file being saved, default is 'rnog'
     ----------
     Returns times, volts, events in the following format
     volts - [
@@ -215,6 +224,9 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
             },        
     ]
     '''
+    if savefile:
+        eventWriter.begin(filename=f'{filename}.nur')
+
     event_ids, times, volts = [], [], []  
     for index, event in enumerate(reader.run()):
         times.append({})
@@ -258,16 +270,20 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
                     pulse_found = True
         
         if pulse_found:
+            write = True
             for channel in station.iter_channels():
                 if channel.get_id() in glitch_chs:
                     #disregard the whole event if any channel is scrambled
                     times[index] = None
                     volts[index] = None
                     event_ids.pop(-1)
+                    write = False
                     break
                 else:
                     volts[index][channel.get_id()] = channel.get_trace()
                     times[index][channel.get_id()] = channel.get_times()
+            if savefile and write:
+                eventWriter.run(event, det=None)
 
         else:
             times[index] = None
