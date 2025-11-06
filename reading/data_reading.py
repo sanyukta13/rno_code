@@ -9,7 +9,7 @@ import NuRadioReco
 from NuRadioReco.framework.base_trace import BaseTrace
 from NuRadioReco.utilities import units, fft, signal_processing
 from NuRadioReco.utilities.fft import time2freq, freq2time
-from NuRadioReco.modules import channelAddCableDelay, channelBandPassFilter, channelCWNotchFilter
+from NuRadioReco.modules import channelAddCableDelay, channelBandPassFilter, channelCWNotchFilter, channelSignalReconstructor
 from NuRadioReco.detector import detector
 from NuRadioReco.modules.RNO_G import hardwareResponseIncorporator
 from NuRadioReco.modules.io.RNO_G import readRNOGDataMattak
@@ -26,6 +26,8 @@ from glitch_unscrambler.glitch_unscrambler import unscramble
 # Suppress the AstropyDeprecationWarning
 warnings.filterwarnings('ignore', category=AstropyDeprecationWarning)
 
+channelSignalReconstructor = channelSignalReconstructor.channelSignalReconstructor(log_level=logging.WARNING)
+channelSignalReconstructor.begin()
 CWNotchFilter = channelCWNotchFilter.channelCWNotchFilter()
 CWNotchFilter.begin()
 eventWriter = eventWriter.eventWriter()
@@ -256,6 +258,8 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         if freq_band_filter is not None:
             BandPassFilter.run(event, station, DET, passband = [freq_band_filter[0]*units.MHz, freq_band_filter[1]*units.MHz])
 
+        channelSignalReconstructor.run(event, station, DET)
+
         pulse_found = True
         if pulse_filter:
             run_id = event.get_run_number()
@@ -289,7 +293,8 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
             times[index] = None
             volts[index] = None
             event_ids.pop(-1)
-
+    if savefile:
+        eventWriter.end()
     filtered_data = [(volt, time) for volt, time in zip(volts, times) if volt is not None]
     if filtered_data:
         v, t = zip(*filtered_data)
@@ -298,7 +303,7 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         v, t = [], []  # Assign empty lists if no valid data is found
     return event_ids, t, v
 
-def get_event_info(reader, keys=['eventNumber', 'triggerTime']):
+def get_event_info(reader, keys=['eventNumber', 'triggerTime', 'triggerType']):
     '''
     Parameters
     ----------
