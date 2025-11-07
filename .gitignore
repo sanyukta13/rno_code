@@ -25,3 +25,7 @@ ENV/
 # OS specific files
 .DS_Store
 Thumbs.db
+
+# NuRadioReco data files
+*.nur
+*.root
