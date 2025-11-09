@@ -224,7 +224,7 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
     if savefile:
         eventWriter.begin(filename=f'{filename}.nur')
 
-    event_ids, event_times, times, volts = [], [], []  
+    event_ids, event_times, times, volts = [], [], [], []
     for index, event in enumerate(reader.run()):
         times.append({})
         volts.append({})
