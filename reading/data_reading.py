@@ -181,8 +181,7 @@ def get_ref_ch(station_id, run):
     return ref_ch
 
 def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_factor = 6,
-                          freq_band_filter = None, cable_delay = 1, cwsubtract = 1, 
-                          glitch_filter = 1, savefile = 0, filename = 'rnog'):
+                          freq_band_filter = None, to_process = 1, savefile = 0, filename = 'rnog'):
     '''
     Parameters
     ----------
@@ -196,12 +195,8 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         pulse rms factor to be used for pulse filter, default is 6
     freq_band_filter : tuple, optional
         frequency band filter to be applied, default is None
-    cable_delay : int, optional
-        cable delay to be applied, default is 1
-    glitch_filter : int, optional
-        0 if glitch filter is not to be applied, 1 if glitch filter is to be applied, default is 1
-    cwsubtract : int, optional
-        0 if cw subtract is not to be applied, 1 if cw subtract is to be applied, default is 1
+    to_process : int, optional
+        to process reader or not (applying filters and delays), use 0 just to extract output, default is 1
     savefile : int, optional
         0 if nur file is not to be saved, 1 if nur file is to be saved, default is 0
     filename : str, optional
@@ -229,28 +224,30 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
     if savefile:
         eventWriter.begin(filename=f'{filename}.nur')
 
-    event_ids, times, volts = [], [], []  
+    event_ids, event_times, times, volts = [], [], []  
     for index, event in enumerate(reader.run()):
         times.append({})
         volts.append({})
         event_ids.append(event.get_id())
         station_id = event.get_station_ids()[0]
         station = event.get_station(station_id)
+        event_times.append(station.get_station_time())
 
         glitch_chs = []
-        if glitch_filter:
+        if to_process:
             for channel in station.iter_channels():
                 # glitch detection
                 if is_channel_scrambled(channel.get_trace())>0:
                     glitch_chs.append(channel.get_id())
-                
-        if cable_delay:
+            
+            # Apply cable delay
             AddCableDelay.run(event, station, DET, mode='subtract')
-
-        hardRespIncorporator.run(event, station, DET, sim_to_data=False, mode="phase_only")
-        
-        if cwsubtract:
+            # Apply hardware response
+            hardRespIncorporator.run(event, station, DET, sim_to_data=False, mode="phase_only")
+            # Apply CW notch filter
             CWNotchFilter.run(event, station, DET)
+            # calculate signal parameters
+            channelSignalReconstructor.run(event, station, DET)
         
         if band_pass:
             BandPassFilter.run(event, station, DET, passband = [175*units.MHz, 750*units.MHz])
@@ -258,7 +255,6 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         if freq_band_filter is not None:
             BandPassFilter.run(event, station, DET, passband = [freq_band_filter[0]*units.MHz, freq_band_filter[1]*units.MHz])
 
-        channelSignalReconstructor.run(event, station, DET)
 
         pulse_found = True
         if pulse_filter:
@@ -281,6 +277,7 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
                     times[index] = None
                     volts[index] = None
                     event_ids.pop(-1)
+                    event_times.pop(-1)
                     write = False
                     break
                 else:
@@ -293,6 +290,7 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
             times[index] = None
             volts[index] = None
             event_ids.pop(-1)
+            event_times.pop(-1)
     if savefile:
         eventWriter.end()
     filtered_data = [(volt, time) for volt, time in zip(volts, times) if volt is not None]
@@ -301,7 +299,7 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
         v, t = list(v), list(t)  # Convert back to lists if needed
     else:
         v, t = [], []  # Assign empty lists if no valid data is found
-    return event_ids, t, v
+    return event_ids, event_times, t, v
 
 def get_event_info(reader, keys=['eventNumber', 'triggerTime', 'triggerType']):
     '''
