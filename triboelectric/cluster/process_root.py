@@ -12,7 +12,7 @@ mattak_kwargs = {
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--input_path', type=str, required=True, help='Path to the root files to process')
-parser.add_argument('--summary', type=bool, required=False, help='Toggle print summary of events processed', default=False)
+parser.add_argument('--summary', action='store_true', help='Print summary of events processed')
 args = parser.parse_args()
 file = args.input_path
 
