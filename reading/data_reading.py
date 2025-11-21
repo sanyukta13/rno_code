@@ -12,6 +12,7 @@ from NuRadioReco.utilities.fft import time2freq, freq2time
 from NuRadioReco.modules import channelAddCableDelay, channelBandPassFilter, channelCWNotchFilter, channelSignalReconstructor
 from NuRadioReco.detector import detector
 from NuRadioReco.modules.RNO_G import hardwareResponseIncorporator
+from NuRadioReco.modules import impulsiveSignalReconstructor
 from NuRadioReco.modules.io.RNO_G import readRNOGDataMattak
 from NuRadioReco.modules.io import eventWriter
 import astropy.time, logging, json, warnings
@@ -26,6 +27,7 @@ from glitch_unscrambler.glitch_unscrambler import unscramble
 # Suppress the AstropyDeprecationWarning
 warnings.filterwarnings('ignore', category=AstropyDeprecationWarning)
 
+reconstructor = impulsiveSignalReconstructor.ImpulsiveSignalReconstructor()
 channelSignalReconstructor = channelSignalReconstructor.channelSignalReconstructor(log_level=logging.WARNING)
 channelSignalReconstructor.begin()
 CWNotchFilter = channelCWNotchFilter.channelCWNotchFilter()
@@ -248,6 +250,8 @@ def get_eventsvoltstraces(reader, band_pass = 0, pulse_filter = 0, pulse_rms_fac
             CWNotchFilter.run(event, station, DET)
             # calculate signal parameters
             channelSignalReconstructor.run(event, station, DET)
+            # reconstruct impulsive signal - only use for uplpdas 
+            reconstructor.run(event, station, DET, use_channels=[13,16,19])
         
         if band_pass:
             BandPassFilter.run(event, station, DET, passband = [175*units.MHz, 750*units.MHz])
