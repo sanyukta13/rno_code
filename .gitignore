@@ -29,3 +29,9 @@ Thumbs.db
 # NuRadioReco data files
 *.nur
 *.root
+
+# jpegs, pngs and pdfs
+*.jpg
+*.jpeg
+*.png
+*.pdf
