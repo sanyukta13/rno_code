@@ -19,6 +19,7 @@ import warnings
 from astropy.utils.exceptions import AstropyDeprecationWarning
 from datetime import datetime
 from scipy.signal import correlate, hilbert
+from scipy.stats import landau
 from scipy.integrate import simpson
 
 # Suppress the AstropyDeprecationWarning
@@ -76,8 +77,8 @@ def rms_noise(volt_trace, method=None):
     Parameters:
     - volt_trace (numpy array): Voltage trace
     - method (str): Method to calculate RMS noise, for get_snr use 'peak' to calculate noise around the peak. 
-        For get_hilbert_snr use 'hilbert envelopse' to calculate noise around the peak of the hilbert transform.
-    
+        For get_hilbert_snr use 'hilbert' to calculate noise around the peak of the hilbert transform.
+
     Returns:
     - rms (float): RMS noise
     """
@@ -250,3 +251,58 @@ def zenith(x_r, y_r, z_r, x_t, y_t, z_t, err=0.1):
     # Error in theta (radians)
     sigma_theta = sigma_f / np.sqrt(1 - f**2)
     return zenith, (sigma_theta * 180 / np.pi) # convert to degrees
+
+def calc_dispersivity(hilbert_trace):
+    """
+    Calculates the spread of a waveform, using the hilbert envelope of a waveform it cross-correlates with a landau distribution 
+    ultrarelativistic particles travelling in a medium lose energy through radiation, which can be described by the landau distribution.
+
+    Parameters:
+    - hilbert_trace (numpy array): Hilbert envelope of the waveform
+
+    Returns:
+    - dispersivity (float): The calculated dispersivity of the waveform
+    """
+    pk = np.argmax(hilbert_trace)
+    start_idx = max(0, pk - 200)
+    end_idx = min(len(hilbert_trace), pk + 200)
+    noise_h = np.concatenate((hilbert_trace[:start_idx], hilbert_trace[end_idx:]))
+    noise = np.sqrt(simpson(noise_h**2, dx=0.3)/len(noise_h))
+    landau_dist = landau.pdf(np.linspace(0, len(hilbert_trace), len(hilbert_trace)), loc=0, scale=1) + noise
+    landau_dist = landau_dist / np.max(landau_dist)
+    corr = np.correlate(hilbert_trace / np.max(hilbert_trace), landau_dist, mode='full')
+    return corr
+
+def fit_landau(trace):
+    """
+    Fit a Landau distribution to the given trace.
+
+    Parameters:
+    - trace (numpy array): The input trace to fit
+
+    Returns:
+    - scale (float): The scale parameter of the fitted Landau distribution
+    - landau_dist (numpy array): The fitted Landau distribution
+    """
+    from scipy.optimize import curve_fit
+
+    def landau_func(x, loc, scale, A):
+        return A * landau.pdf(x, loc=loc, scale=scale)
+
+    x_data = np.arange(len(trace))
+    y_data = trace.copy()
+
+    pk = np.argmax(y_data)
+    start_idx = max(0, pk - 200)
+    end_idx = min(len(y_data), pk + 200)
+    noise_h = np.concatenate((y_data[:start_idx], y_data[end_idx:]))
+    noise = np.sqrt(simpson(noise_h**2, dx=0.3)/len(noise_h))
+    y_data = y_data - noise
+    y_data[y_data < 0] = 0 
+
+    initial_guess = [np.argmax(y_data), 1, np.max(y_data)]
+    try:
+        popt, _ = curve_fit(landau_func, x_data, y_data, p0=initial_guess)
+    except RuntimeError:
+        popt = (np.nan, np.nan, np.nan)
+    return popt[1], landau_func(x_data, *popt) + noise
